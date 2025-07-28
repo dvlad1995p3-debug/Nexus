@@ -40,6 +40,7 @@ export function GroupDetail() {
   const [editDescription, setEditDescription] = useState('');
   const [editAvatar, setEditAvatar] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState(null); // { type: 'success' | 'error', text: string }
 
   useEffect(() => {
     fetchCurrentUser();
@@ -156,6 +157,11 @@ export function GroupDetail() {
     }
   };
 
+  const showMessage = (type, text) => {
+    setMessage({ type, text });
+    setTimeout(() => setMessage(null), 4000);
+  };
+
   const joinGroup = async () => {
     try {
       if (!currentUser) return;
@@ -172,10 +178,10 @@ export function GroupDetail() {
 
       checkUserMembership();
       fetchGroupMembers();
-      alert('Ви успішно приєдналися до групи!');
+      showMessage('success', 'Ви успішно приєдналися до групи!');
     } catch (error) {
       console.error('Error joining group:', error);
-      alert('Помилка при приєднанні до групи');
+      showMessage('error', 'Помилка при приєднанні до групи');
     }
   };
 
@@ -184,7 +190,7 @@ export function GroupDetail() {
       if (!currentUser || !userMembership) return;
 
       if (userMembership.role === 'admin') {
-        alert('Адміністратор не може покинути групу');
+        showMessage('error', 'Адміністратор не може покинути групу');
         return;
       }
 
@@ -198,10 +204,10 @@ export function GroupDetail() {
 
       setUserMembership(null);
       fetchGroupMembers();
-      alert('Ви покинули групу');
+      showMessage('success', 'Ви покинули групу');
     } catch (error) {
       console.error('Error leaving group:', error);
-      alert('Помилка при виході з групи');
+      showMessage('error', 'Помилка при виході з групи');
     }
   };
 
@@ -269,7 +275,7 @@ export function GroupDetail() {
       fetchGroupPosts();
     } catch (error) {
       console.error('Error creating post:', error);
-      alert('Помилка при створенні поста');
+      showMessage('error', 'Помилка при створенні поста');
     } finally {
       setPosting(false);
     }
@@ -404,6 +410,15 @@ export function GroupDetail() {
 
         {/* Content */}
         <div className="max-w-6xl mx-auto px-8 py-6">
+          {message && (
+            <div className={`mb-6 px-4 py-3 rounded-lg text-center font-medium transition-all duration-300 ${
+              message.type === 'success'
+                ? 'bg-green-100 text-green-800 border border-green-200'
+                : 'bg-red-100 text-red-800 border border-red-200'
+            }`}>
+              {message.text}
+            </div>
+          )}
           {isMember ? (
             <>
               {/* Tabs */}
