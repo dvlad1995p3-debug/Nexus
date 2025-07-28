@@ -1,4 +1,6 @@
 import React, { useEffect } from 'react';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { Routes, Route, Link } from 'react-router-dom';
 import { Users as UsersIcon } from 'lucide-react';
 import { AuthService } from './src/lib/auth';
@@ -110,6 +112,17 @@ function App() {
         <Route path="/test-db" element={<TestDB />} />
         <Route path="/wall" element={<Wall />} />
       </Routes>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
     </>
   );
 }
