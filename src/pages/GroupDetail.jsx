@@ -21,6 +21,8 @@ import {
   X,
   Upload
 } from 'lucide-react';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export function GroupDetail() {
   const { groupId } = useParams();
@@ -172,10 +174,10 @@ export function GroupDetail() {
 
       checkUserMembership();
       fetchGroupMembers();
-      alert('Ви успішно приєдналися до групи!');
+      toast.success('Ви успішно приєдналися до групи!');
     } catch (error) {
       console.error('Error joining group:', error);
-      alert('Помилка при приєднанні до групи');
+      toast.error('Помилка при приєднанні до групи');
     }
   };
 
@@ -184,7 +186,7 @@ export function GroupDetail() {
       if (!currentUser || !userMembership) return;
 
       if (userMembership.role === 'admin') {
-        alert('Адміністратор не може покинути групу');
+        toast.info('Адміністратор не може покинути групу');
         return;
       }
 
@@ -198,10 +200,10 @@ export function GroupDetail() {
 
       setUserMembership(null);
       fetchGroupMembers();
-      alert('Ви покинули групу');
+      toast.success('Ви покинули групу');
     } catch (error) {
       console.error('Error leaving group:', error);
-      alert('Помилка при виході з групи');
+      toast.error('Помилка при виході з групи');
     }
   };
 
@@ -269,7 +271,7 @@ export function GroupDetail() {
       fetchGroupPosts();
     } catch (error) {
       console.error('Error creating post:', error);
-      alert('Помилка при створенні поста');
+      toast.error('Помилка при створенні поста');
     } finally {
       setPosting(false);
     }
@@ -321,6 +323,7 @@ export function GroupDetail() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
+      <ToastContainer position="top-right" autoClose={4000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover />
       <div className="flex-1 ml-64">
         {/* Header */}
         <div className="bg-white border-b border-gray-200">
