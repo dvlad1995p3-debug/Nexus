@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { toast } from 'react-toastify';
 import { Sidebar } from '../components/Sidebar';
 import { supabase } from '../lib/supabase';
 import { VideoUploadModal } from '../components/VideoUploadModal';
@@ -480,7 +481,7 @@ export function Groups() {
     try {
       // Якщо користувач не авторизований, показуємо повідомлення
       if (!currentUser) {
-        alert('Для створення групи потрібно авторизуватися');
+        toast.error('Для створення групи потрібно авторизуватися');
         setCreating(false);
         return;
       }
@@ -508,13 +509,13 @@ export function Groups() {
           role: 'admin'
         }]);
 
-      alert('Групу успішно створено!');
+      toast.success('Групу успішно створено!');
       setShowCreateModal(false);
       resetNewGroup();
       fetchAllData();
     } catch (error) {
       console.error('Error creating group:', error);
-      alert('Помилка при створенні групи');
+      toast.error('Помилка при створенні групи');
     } finally {
       setCreating(false);
     }
@@ -529,7 +530,7 @@ export function Groups() {
       );
 
       if (existingMember) {
-        alert('Ви вже є членом цієї групи!');
+        toast.info('Ви вже є членом цієї групи!');
         return;
       }
 
@@ -541,11 +542,11 @@ export function Groups() {
           role: 'member'
         }]);
 
-      alert('Ви успішно приєдналися до групи!');
+      toast.success('Ви успішно приєдналися до групи!');
       fetchAllData();
     } catch (error) {
       console.error('Error joining group:', error);
-      alert('Помилка при приєднанні до групи');
+      toast.error('Помилка при приєднанні до групи');
     }
   };
 
@@ -559,11 +560,11 @@ export function Groups() {
         .eq('group_id', groupId)
         .eq('user_id', currentUser);
 
-      alert('Ви покинули групу!');
+      toast.info('Ви покинули групу!');
       fetchAllData();
     } catch (error) {
       console.error('Error leaving group:', error);
-      alert('Помилка при виході з групи');
+      toast.error('Помилка при виході з групи');
     }
   };
 
