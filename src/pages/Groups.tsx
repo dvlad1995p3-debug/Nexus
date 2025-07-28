@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Sidebar } from '../components/Sidebar';
 import { supabase } from '../lib/supabase';
 import { VideoUploadModal } from '../components/VideoUploadModal';
+import { useToast, createSuccessToast, createErrorToast, createWarningToast } from '../components/Toast';
 import { 
   Search, 
   Plus, 
@@ -120,6 +121,7 @@ const CATEGORIES = [
 ];
 
 export function Groups() {
+  const { showToast } = useToast();
   const [groups, setGroups] = useState<Group[]>([]);
   const [myGroups, setMyGroups] = useState<Group[]>([]);
   const [joinedGroups, setJoinedGroups] = useState<Group[]>([]);
@@ -480,7 +482,10 @@ export function Groups() {
     try {
       // Якщо користувач не авторизований, показуємо повідомлення
       if (!currentUser) {
-        alert('Для створення групи потрібно авторизуватися');
+        showToast(createWarningToast(
+          'Потрібна авторизація',
+          'Для створення групи потрібно увійти в систему'
+        ));
         setCreating(false);
         return;
       }
@@ -508,13 +513,19 @@ export function Groups() {
           role: 'admin'
         }]);
 
-      alert('Групу успішно створено!');
+      showToast(createSuccessToast(
+        'Групу створено!',
+        'Ваша нова група успішно створена'
+      ));
       setShowCreateModal(false);
       resetNewGroup();
       fetchAllData();
     } catch (error) {
       console.error('Error creating group:', error);
-      alert('Помилка при створенні групи');
+      showToast(createErrorToast(
+        'Помилка створення',
+        'Не вдалося створити групу. Спробуйте ще раз.'
+      ));
     } finally {
       setCreating(false);
     }
@@ -529,7 +540,10 @@ export function Groups() {
       );
 
       if (existingMember) {
-        alert('Ви вже є членом цієї групи!');
+        showToast(createWarningToast(
+          'Вже член групи',
+          'Ви вже є учасником цієї групи'
+        ));
         return;
       }
 
@@ -541,11 +555,17 @@ export function Groups() {
           role: 'member'
         }]);
 
-      alert('Ви успішно приєдналися до групи!');
+      showToast(createSuccessToast(
+        'Приєднання успішне!',
+        'Ви успішно приєдналися до групи'
+      ));
       fetchAllData();
     } catch (error) {
       console.error('Error joining group:', error);
-      alert('Помилка при приєднанні до групи');
+      showToast(createErrorToast(
+        'Помилка приєднання',
+        'Не вдалося приєднатися до групи. Спробуйте ще раз.'
+      ));
     }
   };
 
@@ -559,11 +579,17 @@ export function Groups() {
         .eq('group_id', groupId)
         .eq('user_id', currentUser);
 
-      alert('Ви покинули групу!');
+      showToast(createSuccessToast(
+        'Покинули групу',
+        'Ви успішно покинули групу'
+      ));
       fetchAllData();
     } catch (error) {
       console.error('Error leaving group:', error);
-      alert('Помилка при виході з групи');
+      showToast(createErrorToast(
+        'Помилка виходу',
+        'Не вдалося покинути групу. Спробуйте ще раз.'
+      ));
     }
   };
 

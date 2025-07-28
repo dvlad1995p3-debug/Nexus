@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Sidebar } from '../components/Sidebar';
 import { supabase } from '../lib/supabase';
+import { useToast, createSuccessToast, createErrorToast, createWarningToast } from '../components/Toast';
 import { 
   ArrowLeft, 
   Users, 
@@ -19,12 +20,20 @@ import {
   Image as ImageIcon,
   Video,
   X,
-  Upload
+  Upload,
+  CheckCircle,
+  Activity,
+  Hash,
+  Crown,
+  MapPin,
+  ExternalLink,
+  Clock
 } from 'lucide-react';
 
 export function GroupDetail() {
   const { groupId } = useParams();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [group, setGroup] = useState(null);
   const [posts, setPosts] = useState([]);
   const [members, setMembers] = useState([]);
@@ -172,10 +181,16 @@ export function GroupDetail() {
 
       checkUserMembership();
       fetchGroupMembers();
-      alert('Ви успішно приєдналися до групи!');
+      showToast(createSuccessToast(
+        'Успіх!', 
+        'Ви успішно приєдналися до групи!'
+      ));
     } catch (error) {
       console.error('Error joining group:', error);
-      alert('Помилка при приєднанні до групи');
+      showToast(createErrorToast(
+        'Помилка',
+        'Не вдалося приєднатися до групи. Спробуйте ще раз.'
+      ));
     }
   };
 
@@ -184,7 +199,10 @@ export function GroupDetail() {
       if (!currentUser || !userMembership) return;
 
       if (userMembership.role === 'admin') {
-        alert('Адміністратор не може покинути групу');
+        showToast(createWarningToast(
+          'Неможливо покинути групу',
+          'Адміністратор не може покинути групу. Передайте права іншому учаснику.'
+        ));
         return;
       }
 
@@ -198,10 +216,16 @@ export function GroupDetail() {
 
       setUserMembership(null);
       fetchGroupMembers();
-      alert('Ви покинули групу');
+      showToast(createSuccessToast(
+        'Успіх!',
+        'Ви покинули групу'
+      ));
     } catch (error) {
       console.error('Error leaving group:', error);
-      alert('Помилка при виході з групи');
+      showToast(createErrorToast(
+        'Помилка',
+        'Не вдалося покинути групу. Спробуйте ще раз.'
+      ));
     }
   };
 
@@ -267,9 +291,16 @@ export function GroupDetail() {
       setNewPost('');
       setSelectedMedia([]);
       fetchGroupPosts();
+      showToast(createSuccessToast(
+        'Пост опубліковано!',
+        'Ваш пост успішно додано до групи'
+      ));
     } catch (error) {
       console.error('Error creating post:', error);
-      alert('Помилка при створенні поста');
+      showToast(createErrorToast(
+        'Помилка публікації',
+        'Не вдалося опублікувати пост. Перевірте інтернет-з\'єднання та спробуйте ще раз.'
+      ));
     } finally {
       setPosting(false);
     }
@@ -689,79 +720,238 @@ export function GroupDetail() {
               )}
 
               {activeTab === 'info' && (
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 max-w-xl mx-auto">
-                  <div className="flex flex-col items-center">
-                    <div className="relative w-24 h-24 mb-4">
-                      <img
-                        src={editAvatar ? URL.createObjectURL(editAvatar) : group.avatar || ''}
-                        alt="Group avatar"
-                        className="w-24 h-24 rounded-full object-cover border border-gray-200"
-                      />
-                      {isAdmin && (
-                        <label className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-1 cursor-pointer hover:bg-blue-700">
-                          <Upload size={16} />
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={e => setEditAvatar(e.target.files[0])}
+                <div className="space-y-6">
+                  {/* Group Avatar and Basic Info */}
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                    <div className="flex flex-col items-center">
+                      <div className="relative w-24 h-24 mb-4">
+                        <img
+                          src={editAvatar ? URL.createObjectURL(editAvatar) : group.avatar || ''}
+                          alt="Group avatar"
+                          className="w-24 h-24 rounded-full object-cover border border-gray-200"
+                        />
+                        {isAdmin && (
+                          <label className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-1 cursor-pointer hover:bg-blue-700">
+                            <Upload size={16} />
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={e => setEditAvatar(e.target.files[0])}
+                            />
+                          </label>
+                        )}
+                      </div>
+                      <h2 className="text-2xl font-bold mb-2">{group.name}</h2>
+                      
+                      {/* Status badges */}
+                      <div className="flex items-center space-x-2 mb-4">
+                        {group.is_verified && (
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full flex items-center">
+                            <CheckCircle size={12} className="mr-1" />
+                            Верифікована
+                          </span>
+                        )}
+                        {group.is_active ? (
+                          <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full flex items-center">
+                            <Activity size={12} className="mr-1" />
+                            Активна
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">
+                            Неактивна
+                          </span>
+                        )}
+                        <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">
+                          {group.is_private ? 'Приватна' : 'Публічна'}
+                        </span>
+                      </div>
+
+                      {/* Description */}
+                      {editMode ? (
+                        <>
+                          <textarea
+                            className="w-full border rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            rows={3}
+                            value={editDescription}
+                            onChange={e => setEditDescription(e.target.value)}
+                            placeholder="Опишіть групу..."
                           />
-                        </label>
+                          <div className="flex space-x-2">
+                            <button
+                              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                              disabled={saving}
+                              onClick={async () => {
+                                setSaving(true);
+                                try {
+                                  let avatarUrl = group.avatar;
+                                  if (editAvatar) {
+                                    const fileExt = editAvatar.name.split('.').pop();
+                                    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+                                    const filePath = `group-avatars/${groupId}/${fileName}`;
+                                    const { error: uploadError } = await supabase.storage.from('media').upload(filePath, editAvatar);
+                                    if (!uploadError) {
+                                      const { data: { publicUrl } } = supabase.storage.from('media').getPublicUrl(filePath);
+                                      avatarUrl = publicUrl;
+                                    }
+                                  }
+                                  const { error } = await supabase.from('groups').update({ 
+                                    description: editDescription, 
+                                    avatar: avatarUrl 
+                                  }).eq('id', groupId);
+                                  
+                                  if (error) throw error;
+                                  
+                                  setGroup({ ...group, description: editDescription, avatar: avatarUrl });
+                                  setEditMode(false);
+                                  setEditAvatar(null);
+                                  showToast(createSuccessToast(
+                                    'Групу оновлено!',
+                                    'Інформація про групу успішно збережена'
+                                  ));
+                                } catch (error) {
+                                  console.error('Error updating group:', error);
+                                  showToast(createErrorToast(
+                                    'Помилка збереження',
+                                    'Не вдалося зберегти зміни. Спробуйте ще раз.'
+                                  ));
+                                } finally {
+                                  setSaving(false);
+                                }
+                              }}
+                            >
+                              {saving ? 'Збереження...' : 'Зберегти'}
+                            </button>
+                            <button
+                              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                              onClick={() => { setEditMode(false); setEditDescription(group.description || ''); setEditAvatar(null); }}
+                            >
+                              Скасувати
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="mb-4 text-gray-800 w-full text-center min-h-[48px] max-w-md">
+                            {group.description || 'Опис відсутній'}
+                          </div>
+                          {isAdmin && (
+                            <button
+                              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                              onClick={() => { setEditMode(true); setEditDescription(group.description || ''); }}
+                            >
+                              Редагувати опис
+                            </button>
+                          )}
+                        </>
                       )}
                     </div>
-                    <h2 className="text-2xl font-bold mb-2">{group.name}</h2>
-                    <div className="text-gray-600 mb-2">Створено: {formatDate(group.created_at)}</div>
-                    <div className="text-gray-600 mb-2">Адміністратор: {members.find(m => m.role === 'admin')?.user?.name || '—'}</div>
-                    {editMode ? (
-                      <>
-                        <textarea
-                          className="w-full border rounded p-2 mb-2"
-                          rows={3}
-                          value={editDescription}
-                          onChange={e => setEditDescription(e.target.value)}
-                        />
-                        <div className="flex space-x-2">
-                          <button
-                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                            disabled={saving}
-                            onClick={async () => {
-                              setSaving(true);
-                              let avatarUrl = group.avatar;
-                              if (editAvatar) {
-                                const fileExt = editAvatar.name.split('.').pop();
-                                const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-                                const filePath = `group-avatars/${groupId}/${fileName}`;
-                                const { error: uploadError } = await supabase.storage.from('media').upload(filePath, editAvatar);
-                                if (!uploadError) {
-                                  const { data: { publicUrl } } = supabase.storage.from('media').getPublicUrl(filePath);
-                                  avatarUrl = publicUrl;
-                                }
-                              }
-                              const { error } = await supabase.from('groups').update({ description: editDescription, avatar: avatarUrl }).eq('id', groupId);
-                              if (!error) {
-                                setGroup({ ...group, description: editDescription, avatar: avatarUrl });
-                                setEditMode(false);
-                                setEditAvatar(null);
-                              }
-                              setSaving(false);
-                            }}
-                          >Зберегти</button>
-                          <button
-                            className="px-4 py-2 border rounded hover:bg-gray-100"
-                            onClick={() => { setEditMode(false); setEditDescription(group.description || ''); setEditAvatar(null); }}
-                          >Скасувати</button>
+                  </div>
+
+                  {/* Detailed Information */}
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Деталі групи</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-3">
+                        <div className="flex items-center text-sm">
+                          <Calendar className="w-4 h-4 text-gray-400 mr-3" />
+                          <span className="text-gray-600">Створено:</span>
+                          <span className="ml-2 font-medium">{formatDate(group.created_at)}</span>
                         </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="mb-4 text-gray-800 w-full text-center min-h-[48px]">{group.description || 'Опис відсутній'}</div>
-                        {isAdmin && (
-                          <button
-                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                            onClick={() => { setEditMode(true); setEditDescription(group.description || ''); }}
-                          >Редагувати опис</button>
+                        
+                        <div className="flex items-center text-sm">
+                          <Users className="w-4 h-4 text-gray-400 mr-3" />
+                          <span className="text-gray-600">Учасників:</span>
+                          <span className="ml-2 font-medium">{group.member_count || members.length}</span>
+                        </div>
+                        
+                        <div className="flex items-center text-sm">
+                          <MessageCircle className="w-4 h-4 text-gray-400 mr-3" />
+                          <span className="text-gray-600">Постів:</span>
+                          <span className="ml-2 font-medium">{group.post_count || posts.length}</span>
+                        </div>
+
+                        {group.category && (
+                          <div className="flex items-center text-sm">
+                            <Hash className="w-4 h-4 text-gray-400 mr-3" />
+                            <span className="text-gray-600">Категорія:</span>
+                            <span className="ml-2 font-medium">{group.category}</span>
+                          </div>
                         )}
-                      </>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="flex items-center text-sm">
+                          <Crown className="w-4 h-4 text-gray-400 mr-3" />
+                          <span className="text-gray-600">Адміністратор:</span>
+                          <span className="ml-2 font-medium">
+                            {members.find(m => m.role === 'admin')?.user?.name} {members.find(m => m.role === 'admin')?.user?.last_name || '—'}
+                          </span>
+                        </div>
+
+                        {group.location && (
+                          <div className="flex items-center text-sm">
+                            <MapPin className="w-4 h-4 text-gray-400 mr-3" />
+                            <span className="text-gray-600">Місцезнаходження:</span>
+                            <span className="ml-2 font-medium">{group.location}</span>
+                          </div>
+                        )}
+
+                        {group.website && (
+                          <div className="flex items-center text-sm">
+                            <ExternalLink className="w-4 h-4 text-gray-400 mr-3" />
+                            <span className="text-gray-600">Веб-сайт:</span>
+                            <a 
+                              href={group.website} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="ml-2 font-medium text-blue-600 hover:text-blue-800"
+                            >
+                              {group.website}
+                            </a>
+                          </div>
+                        )}
+
+                        {group.last_activity && (
+                          <div className="flex items-center text-sm">
+                            <Clock className="w-4 h-4 text-gray-400 mr-3" />
+                            <span className="text-gray-600">Остання активність:</span>
+                            <span className="ml-2 font-medium">{formatDate(group.last_activity)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Tags */}
+                    {group.tags && group.tags.length > 0 && (
+                      <div className="mt-4">
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">Теги</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {group.tags.map((tag, index) => (
+                            <span 
+                              key={index}
+                              className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                            >
+                              #{tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Rules */}
+                    {group.rules && group.rules.length > 0 && (
+                      <div className="mt-4">
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">Правила групи</h4>
+                        <ul className="space-y-1">
+                          {group.rules.map((rule, index) => (
+                            <li key={index} className="text-sm text-gray-600 flex items-start">
+                              <span className="font-medium text-gray-800 mr-2">{index + 1}.</span>
+                              {rule}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     )}
                   </div>
                 </div>
