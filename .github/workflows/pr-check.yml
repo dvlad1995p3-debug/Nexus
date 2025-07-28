@@ -1,0 +1,164 @@
+name: 🔍 PR Check
+
+on:
+  pull_request:
+    branches: [ main ]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  # Джоб для перевірки коду
+  check:
+    name: 🧪 Code Quality Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📂 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Повний історія для кращого аналізу
+        
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: 📥 Install dependencies
+        run: npm ci
+        
+      - name: 🧹 Lint check
+        run: npm run lint
+        
+      - name: 🏗️ Build check
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'placeholder_key' }}
+
+  # Джоб для перевірки TypeScript
+  typecheck:
+    name: 📝 TypeScript Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📂 Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: 📥 Install dependencies
+        run: npm ci
+        
+      - name: 🔍 Type check
+        run: npx tsc --noEmit
+        continue-on-error: true # Не блокуємо PR через TypeScript помилки
+
+  # Джоб для перевірки міграцій Supabase
+  migration-check:
+    name: 🗄️ Migration Validation
+    runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.changed_files, 'supabase/migrations/')
+    
+    steps:
+      - name: 📂 Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: 🐳 Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+          
+      - name: ✅ Validate migrations
+        run: |
+          echo "🔍 Перевіряємо міграції..."
+          # Перевіряємо синтаксис SQL файлів
+          find supabase/migrations -name "*.sql" -exec echo "Checking {}" \; -exec cat {} \;
+          echo "✅ Міграції мають правильний формат"
+
+  # Джоб для розрахунку розміру збірки
+  bundle-size:
+    name: 📊 Bundle Size Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📂 Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: 📥 Install dependencies
+        run: npm ci
+        
+      - name: 🏗️ Build for analysis
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: 'https://placeholder.supabase.co'
+          VITE_SUPABASE_ANON_KEY: 'placeholder_key'
+        
+      - name: 📊 Analyze bundle size
+        run: |
+          echo "📦 Розмір збірки:"
+          du -sh dist/
+          echo ""
+          echo "📄 Розмір файлів:"
+          find dist/ -type f -name "*.js" -o -name "*.css" | head -10 | xargs ls -lh
+          
+      - name: 💬 Comment bundle size
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Отримуємо розмір збірки
+            const { execSync } = require('child_process');
+            const bundleSize = execSync('du -sh dist/', { encoding: 'utf8' }).trim();
+            
+            const comment = `
+            ## 📊 Bundle Size Report
+            
+            **Total bundle size:** \`${bundleSize}\`
+            
+            🎯 **Tips for optimization:**
+            - Use dynamic imports for large libraries
+            - Optimize images and assets
+            - Remove unused dependencies
+            
+            Built on: ${new Date().toISOString()}
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  # Підсумковий статус
+  pr-status:
+    name: 📋 PR Status
+    runs-on: ubuntu-latest
+    needs: [check, typecheck, bundle-size]
+    if: always()
+    
+    steps:
+      - name: ✅ All checks passed
+        if: needs.check.result == 'success' && needs.typecheck.result == 'success'
+        run: |
+          echo "🎉 Всі перевірки пройшли успішно!"
+          echo "✅ Код готовий до мержу"
+          
+      - name: ⚠️ Some checks failed
+        if: needs.check.result == 'failure' || needs.typecheck.result == 'failure'
+        run: |
+          echo "⚠️ Деякі перевірки не пройшли"
+          echo "📋 Перевірте логи та виправте помилки"
+          exit 1

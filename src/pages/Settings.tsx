@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from '../components/Sidebar';
 import { supabase } from '../lib/supabase';
-import { User, Shield, Bell, Globe, Lock } from 'lucide-react';
+import { User, Shield, Bell, Globe, Lock, Plus, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getUserProfile, updateUserProfile } from '../lib/userProfileService';
 
@@ -13,6 +13,17 @@ interface UserSettings {
   bio?: string;
   city?: string;
   birth_date?: string;
+  education?: string;
+  work?: string;
+  relationshipStatus?: string;
+  phone?: string;
+  website?: string;
+  isVerified?: boolean;
+  familyStatus?: string;
+  location?: string;
+  hobbies?: string[];
+  languages?: string[];
+  email_verified?: boolean;
   notifications: {
     email: boolean;
     messages: boolean;
@@ -29,6 +40,8 @@ export function Settings() {
   const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const [newHobby, setNewHobby] = useState('');
+  const [newLanguage, setNewLanguage] = useState('');
   const [settings, setSettings] = useState<UserSettings>({
     name: '',
     last_name: '',
@@ -37,6 +50,17 @@ export function Settings() {
     bio: '',
     city: '',
     birth_date: '',
+    education: '',
+    work: '',
+    relationshipStatus: '',
+    phone: '',
+    website: '',
+    isVerified: false,
+    familyStatus: '',
+    location: '',
+    hobbies: [],
+    languages: [],
+    email_verified: false,
     notifications: {
       email: true,
       messages: true,
@@ -70,6 +94,17 @@ export function Settings() {
         bio: data.bio || '',
         city: data.city || '',
         birth_date: data.birth_date || '',
+        education: data.education || '',
+        work: data.work || '',
+        relationshipStatus: data.relationshipStatus || '',
+        phone: data.phone || '',
+        website: data.website || '',
+        isVerified: data.isVerified || false,
+        familyStatus: data.familyStatus || '',
+        location: data.location || '',
+        hobbies: data.hobbies || [],
+        languages: data.languages || [],
+        email_verified: data.email_verified || false,
         notifications: data.notifications || { email: true, messages: true, friendRequests: true },
         privacy: data.privacy || { profileVisibility: 'public', showBirthDate: true, showEmail: false },
       });
@@ -96,8 +131,43 @@ export function Settings() {
     }
   };
 
+  const addHobby = () => {
+    if (newHobby.trim() && !settings.hobbies?.includes(newHobby.trim())) {
+      setSettings({
+        ...settings,
+        hobbies: [...(settings.hobbies || []), newHobby.trim()]
+      });
+      setNewHobby('');
+    }
+  };
+
+  const removeHobby = (hobby: string) => {
+    setSettings({
+      ...settings,
+      hobbies: settings.hobbies?.filter(h => h !== hobby) || []
+    });
+  };
+
+  const addLanguage = () => {
+    if (newLanguage.trim() && !settings.languages?.includes(newLanguage.trim())) {
+      setSettings({
+        ...settings,
+        languages: [...(settings.languages || []), newLanguage.trim()]
+      });
+      setNewLanguage('');
+    }
+  };
+
+  const removeLanguage = (language: string) => {
+    setSettings({
+      ...settings,
+      languages: settings.languages?.filter(l => l !== language) || []
+    });
+  };
+
   const tabs = [
     { id: 'profile', label: 'Профіль', icon: User },
+    { id: 'additional', label: 'Додаткова інформація', icon: Globe },
     { id: 'privacy', label: 'Приватність', icon: Lock },
     { id: 'notifications', label: 'Сповіщення', icon: Bell },
   ];
@@ -170,16 +240,29 @@ export function Settings() {
                         onChange={e => setSettings({ ...settings, email: e.target.value })}
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                       />
+                      {settings.email_verified && (
+                        <p className="text-sm text-green-600 mt-1">✓ Email верифіковано</p>
+                      )}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Аватар (URL)</label>
+                      <label className="block text-sm font-medium text-gray-700">Телефон</label>
                       <input
-                        type="url"
-                        value={settings.avatar || ''}
-                        onChange={e => setSettings({ ...settings, avatar: e.target.value })}
+                        type="tel"
+                        value={settings.phone || ''}
+                        onChange={e => setSettings({ ...settings, phone: e.target.value })}
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="+380..."
                       />
                     </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Аватар (URL)</label>
+                    <input
+                      type="url"
+                      value={settings.avatar || ''}
+                      onChange={e => setSettings({ ...settings, avatar: e.target.value })}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Про себе</label>
@@ -201,15 +284,176 @@ export function Settings() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">День народження</label>
+                      <label className="block text-sm font-medium text-gray-700">Місцезнаходження</label>
                       <input
-                        type="date"
-                        value={settings.birth_date || ''}
-                        onChange={e => setSettings({ ...settings, birth_date: e.target.value })}
+                        type="text"
+                        value={settings.location || ''}
+                        onChange={e => setSettings({ ...settings, location: e.target.value })}
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="Країна, регіон"
                       />
                     </div>
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">День народження</label>
+                    <input
+                      type="date"
+                      value={settings.birth_date || ''}
+                      onChange={e => setSettings({ ...settings, birth_date: e.target.value })}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Веб-сайт</label>
+                    <input
+                      type="url"
+                      value={settings.website || ''}
+                      onChange={e => setSettings({ ...settings, website: e.target.value })}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      placeholder="https://..."
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="inline-flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  >
+                    Зберегти
+                  </button>
+                </form>
+              )}
+
+              {activeTab === 'additional' && (
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Освіта</label>
+                      <input
+                        type="text"
+                        value={settings.education || ''}
+                        onChange={e => setSettings({ ...settings, education: e.target.value })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="Університет, спеціальність"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Робота</label>
+                      <input
+                        type="text"
+                        value={settings.work || ''}
+                        onChange={e => setSettings({ ...settings, work: e.target.value })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="Компанія, посада"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Статус стосунків</label>
+                      <select
+                        value={settings.relationshipStatus || ''}
+                        onChange={e => setSettings({ ...settings, relationshipStatus: e.target.value })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      >
+                        <option value="">Не вказано</option>
+                        <option value="single">Самотній/я</option>
+                        <option value="in_relationship">У стосунках</option>
+                        <option value="married">Одружений/а</option>
+                        <option value="divorced">Розлучений/а</option>
+                        <option value="complicated">Все складно</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Сімейний статус</label>
+                      <select
+                        value={settings.familyStatus || ''}
+                        onChange={e => setSettings({ ...settings, familyStatus: e.target.value })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      >
+                        <option value="">Не вказано</option>
+                        <option value="no_children">Без дітей</option>
+                        <option value="have_children">Є діти</option>
+                        <option value="want_children">Хочу дітей</option>
+                        <option value="no_want_children">Не хочу дітей</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Хобі</label>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {settings.hobbies?.map((hobby, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
+                        >
+                          {hobby}
+                          <button
+                            type="button"
+                            onClick={() => removeHobby(hobby)}
+                            className="ml-2 text-blue-600 hover:text-blue-800"
+                          >
+                            <X size={14} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newHobby}
+                        onChange={e => setNewHobby(e.target.value)}
+                        onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), addHobby())}
+                        className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="Додати хобі"
+                      />
+                      <button
+                        type="button"
+                        onClick={addHobby}
+                        className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                      >
+                        <Plus size={16} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Мови</label>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {settings.languages?.map((language, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-100 text-green-800"
+                        >
+                          {language}
+                          <button
+                            type="button"
+                            onClick={() => removeLanguage(language)}
+                            className="ml-2 text-green-600 hover:text-green-800"
+                          >
+                            <X size={14} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newLanguage}
+                        onChange={e => setNewLanguage(e.target.value)}
+                        onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), addLanguage())}
+                        className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="Додати мову"
+                      />
+                      <button
+                        type="button"
+                        onClick={addLanguage}
+                        className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                      >
+                        <Plus size={16} />
+                      </button>
+                    </div>
+                  </div>
+
                   <button
                     type="submit"
                     className="inline-flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"

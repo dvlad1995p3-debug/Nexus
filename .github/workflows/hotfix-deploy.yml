@@ -1,0 +1,228 @@
+name: 🚨 Hotfix Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Причина екстреного деплою'
+        required: true
+        type: string
+      skip_tests:
+        description: 'Пропустити тести (тільки для критичних випадків)'
+        required: false
+        type: boolean
+        default: false
+      environment:
+        description: 'Середовище для деплою'
+        required: true
+        type: choice
+        options:
+          - production
+          - staging
+        default: production
+
+jobs:
+  # Джоб для валідації hotfix
+  validate:
+    name: ✅ Validate Hotfix
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📂 Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: 📝 Log hotfix details
+        run: |
+          echo "## 🚨 Hotfix Deploy Request"
+          echo "**Reason:** ${{ github.event.inputs.reason }}"
+          echo "**Environment:** ${{ github.event.inputs.environment }}"
+          echo "**Skip Tests:** ${{ github.event.inputs.skip_tests }}"
+          echo "**Triggered by:** ${{ github.actor }}"
+          echo "**Branch:** ${{ github.ref_name }}"
+          echo "**Commit:** ${{ github.sha }}"
+          echo "**Time:** $(date -u)"
+          
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: 📥 Install dependencies
+        run: npm ci
+        
+      - name: 🧹 Quick lint check
+        if: ${{ !github.event.inputs.skip_tests }}
+        run: npm run lint
+        continue-on-error: true
+        
+      - name: 🏗️ Build check
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+  # Джоб для деплою
+  deploy:
+    name: 🚀 Emergency Deploy
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: 
+      name: ${{ github.event.inputs.environment }}
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+      - name: 📂 Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: 📥 Install dependencies
+        run: npm ci
+        
+      - name: 🏗️ Build project
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          
+      - name: 📤 Upload build artifacts
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+          
+      - name: 🌐 Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  # Джоб для міграції БД (якщо потрібно)
+  migrate:
+    name: 🗄️ Database Migration
+    needs: validate
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, '[migrate]') || contains(github.event.inputs.reason, 'migration')
+    
+    steps:
+      - name: 📂 Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: 🐳 Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+          
+      - name: 🚨 Emergency migration warning
+        run: |
+          echo "⚠️ УВАГА: Виконується екстрена міграція БД!"
+          echo "🔍 Перевіряємо зміни в міграціях..."
+          
+      - name: 🔗 Link Supabase project
+        run: |
+          echo "${{ secrets.SUPABASE_ACCESS_TOKEN }}" | supabase auth login --token
+          supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          
+      - name: 🚀 Run emergency migration
+        run: supabase db push
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+
+  # Джоб для сповіщень
+  notify:
+    name: 📢 Notify Team
+    runs-on: ubuntu-latest
+    needs: [deploy, migrate]
+    if: always()
+    
+    steps:
+      - name: ✅ Success notification
+        if: needs.deploy.result == 'success'
+        run: |
+          echo "## 🎉 Hotfix Successfully Deployed!"
+          echo ""
+          echo "**Details:**"
+          echo "- **Reason:** ${{ github.event.inputs.reason }}"
+          echo "- **Environment:** ${{ github.event.inputs.environment }}"
+          echo "- **Deployed by:** ${{ github.actor }}"
+          echo "- **Branch:** ${{ github.ref_name }}"
+          echo "- **Time:** $(date -u)"
+          echo ""
+          echo "**Site URL:** https://duradazhivlad.github.io/Nexus/"
+          echo ""
+          echo "🔍 **Next steps:**"
+          echo "1. Test the deployed changes"
+          echo "2. Monitor for any issues"
+          echo "3. Update team on resolution"
+          
+      - name: ❌ Failure notification
+        if: needs.deploy.result == 'failure'
+        run: |
+          echo "## 💥 Hotfix Deploy Failed!"
+          echo ""
+          echo "**Details:**"
+          echo "- **Reason:** ${{ github.event.inputs.reason }}"
+          echo "- **Environment:** ${{ github.event.inputs.environment }}"
+          echo "- **Attempted by:** ${{ github.actor }}"
+          echo "- **Branch:** ${{ github.ref_name }}"
+          echo "- **Time:** $(date -u)"
+          echo ""
+          echo "🚨 **Action required:**"
+          echo "1. Check the logs for error details"
+          echo "2. Fix the issues"
+          echo "3. Retry the hotfix deploy"
+          echo "4. Consider rollback if critical"
+          exit 1
+
+  # Джоб для створення інциденту (якщо деплой не вдався)
+  create-incident:
+    name: 📋 Create Incident
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: failure() && needs.deploy.result == 'failure'
+    
+    steps:
+      - name: 🚨 Create incident issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `🚨 Hotfix Deploy Failed - ${new Date().toISOString()}`;
+            const body = `
+            ## 🚨 Hotfix Deploy Incident
+            
+            **Failed deployment details:**
+            - **Reason:** ${{ github.event.inputs.reason }}
+            - **Environment:** ${{ github.event.inputs.environment }}
+            - **Attempted by:** ${{ github.actor }}
+            - **Branch:** ${{ github.ref_name }}
+            - **Commit:** ${{ github.sha }}
+            - **Workflow:** ${{ github.run_id }}
+            
+            ## 🔍 Investigation Steps
+            - [ ] Review workflow logs
+            - [ ] Check build errors
+            - [ ] Verify environment configuration
+            - [ ] Test locally
+            - [ ] Plan rollback strategy
+            
+            ## 📞 Team Notifications
+            - [ ] Notify development team
+            - [ ] Update stakeholders
+            - [ ] Document resolution
+            
+            **Auto-generated on:** ${new Date().toISOString()}
+            `;
+            
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['incident', 'hotfix', 'deploy-failure', 'urgent']
+            });

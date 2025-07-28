@@ -1,0 +1,132 @@
+name: 🧹 Cleanup
+
+on:
+  schedule:
+    # Запускається щодня о 2:00 UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch: # Дозволяє запускати вручну
+
+jobs:
+  cleanup-artifacts:
+    name: 🗑️ Cleanup Build Artifacts
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 🧹 Delete old artifacts
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const artifacts = await github.rest.actions.listArtifactsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+            
+            const oldArtifacts = artifacts.data.artifacts.filter(artifact => {
+              const ageInDays = (Date.now() - new Date(artifact.created_at)) / (1000 * 60 * 60 * 24);
+              return ageInDays > 7; // Видаляємо артефакти старші 7 днів
+            });
+            
+            console.log(`🗑️ Знайдено ${oldArtifacts.length} старих артефактів для видалення`);
+            
+            for (const artifact of oldArtifacts) {
+              console.log(`Видаляємо: ${artifact.name} (${artifact.created_at})`);
+              await github.rest.actions.deleteArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: artifact.id
+              });
+            }
+            
+            console.log(`✅ Видалено ${oldArtifacts.length} старих артефактів`);
+
+  cleanup-caches:
+    name: 🧽 Cleanup Caches
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 🧹 Delete old caches
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const caches = await github.rest.actions.getActionsCacheList({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+            
+            const oldCaches = caches.data.actions_caches.filter(cache => {
+              const ageInDays = (Date.now() - new Date(cache.created_at)) / (1000 * 60 * 60 * 24);
+              return ageInDays > 7; // Видаляємо кеші старші 7 днів
+            });
+            
+            console.log(`🗑️ Знайдено ${oldCaches.length} старих кешів для видалення`);
+            
+            for (const cache of oldCaches) {
+              console.log(`Видаляємо кеш: ${cache.key} (${cache.created_at})`);
+              await github.rest.actions.deleteActionsCacheById({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                cache_id: cache.id
+              });
+            }
+            
+            console.log(`✅ Видалено ${oldCaches.length} старих кешів`);
+
+  cleanup-old-workflows:
+    name: 🔄 Cleanup Old Workflow Runs
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 🧹 Delete old workflow runs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const workflows = await github.rest.actions.listWorkflowRunsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100,
+              status: 'completed'
+            });
+            
+            const oldRuns = workflows.data.workflow_runs.filter(run => {
+              const ageInDays = (Date.now() - new Date(run.created_at)) / (1000 * 60 * 60 * 24);
+              return ageInDays > 30; // Видаляємо прогони старші 30 днів
+            });
+            
+            console.log(`🗑️ Знайдено ${oldRuns.length} старих прогонів для видалення`);
+            
+            for (const run of oldRuns.slice(0, 20)) { // Обмежуємо до 20 за раз
+              console.log(`Видаляємо прогон: ${run.name} #${run.run_number} (${run.created_at})`);
+              await github.rest.actions.deleteWorkflowRun({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: run.id
+              });
+            }
+            
+            console.log(`✅ Видалено ${Math.min(oldRuns.length, 20)} старих прогонів`);
+
+  report:
+    name: 📊 Cleanup Report
+    runs-on: ubuntu-latest
+    needs: [cleanup-artifacts, cleanup-caches, cleanup-old-workflows]
+    if: always()
+    
+    steps:
+      - name: 📊 Generate cleanup report
+        run: |
+          echo "## 🧹 Cleanup Report"
+          echo ""
+          echo "**Date:** $(date)"
+          echo "**Status:** Cleanup completed"
+          echo ""
+          echo "### Actions taken:"
+          echo "- ✅ Cleaned up old build artifacts (>7 days)"
+          echo "- ✅ Cleaned up old caches (>7 days)"
+          echo "- ✅ Cleaned up old workflow runs (>30 days)"
+          echo ""
+          echo "### Benefits:"
+          echo "- 💾 Freed up storage space"
+          echo "- ⚡ Improved repository performance"
+          echo "- 🔒 Better security (removed old artifacts)"
