@@ -19,7 +19,12 @@ import {
   Plus,
   Upload,
   Check,
-  AlertCircle
+  AlertCircle,
+  Globe,
+  Phone,
+  Briefcase,
+  GraduationCap,
+  Shield
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -33,6 +38,17 @@ interface UserProfile {
   city?: string;
   birthdate?: string;
   created_at?: string;
+  education?: string;
+  work?: string;
+  relationshipStatus?: string;
+  phone?: string;
+  website?: string;
+  isVerified?: boolean;
+  familyStatus?: string;
+  location?: string;
+  hobbies?: string[];
+  languages?: string[];
+  email_verified?: boolean;
   notifications?: {
     email: boolean;
     messages: boolean;
@@ -53,6 +69,8 @@ export function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [newHobby, setNewHobby] = useState('');
+  const [newLanguage, setNewLanguage] = useState('');
   
   // Form states
   const [editForm, setEditForm] = useState({
@@ -61,7 +79,16 @@ export function Profile() {
     bio: '',
     city: '',
     birthdate: '',
-    avatar: ''
+    avatar: '',
+    education: '',
+    work: '',
+    relationshipStatus: '',
+    phone: '',
+    website: '',
+    familyStatus: '',
+    location: '',
+    hobbies: [] as string[],
+    languages: [] as string[]
   });
 
   const navigate = useNavigate();
@@ -113,7 +140,16 @@ export function Profile() {
         bio: userProfile.bio || '',
         city: userProfile.city || '',
         birthdate: userProfile.birthdate || '',
-        avatar: userProfile.avatar || ''
+        avatar: userProfile.avatar || '',
+        education: userProfile.education || '',
+        work: userProfile.work || '',
+        relationshipStatus: userProfile.relationshipStatus || '',
+        phone: userProfile.phone || '',
+        website: userProfile.website || '',
+        familyStatus: userProfile.familyStatus || '',
+        location: userProfile.location || '',
+        hobbies: userProfile.hobbies || [],
+        languages: userProfile.languages || []
       });
       
     } catch (err) {
@@ -144,7 +180,16 @@ export function Profile() {
         bio: editForm.bio.trim(),
         city: editForm.city.trim(),
         birthdate: editForm.birthdate || undefined,
-        avatar: editForm.avatar.trim() || undefined
+        avatar: editForm.avatar.trim() || undefined,
+        education: editForm.education.trim() || undefined,
+        work: editForm.work.trim() || undefined,
+        relationshipStatus: editForm.relationshipStatus || undefined,
+        phone: editForm.phone.trim() || undefined,
+        website: editForm.website.trim() || undefined,
+        familyStatus: editForm.familyStatus || undefined,
+        location: editForm.location.trim() || undefined,
+        hobbies: editForm.hobbies,
+        languages: editForm.languages
       });
       
       if (updatedProfile) {
@@ -175,11 +220,56 @@ export function Profile() {
         bio: profile.bio || '',
         city: profile.city || '',
         birthdate: profile.birthdate || '',
-        avatar: profile.avatar || ''
+        avatar: profile.avatar || '',
+        education: profile.education || '',
+        work: profile.work || '',
+        relationshipStatus: profile.relationshipStatus || '',
+        phone: profile.phone || '',
+        website: profile.website || '',
+        familyStatus: profile.familyStatus || '',
+        location: profile.location || '',
+        hobbies: profile.hobbies || [],
+        languages: profile.languages || []
       });
     }
     setIsEditing(false);
     setError(null);
+    setNewHobby('');
+    setNewLanguage('');
+  };
+
+  const addHobby = () => {
+    if (newHobby.trim() && !editForm.hobbies.includes(newHobby.trim())) {
+      setEditForm({
+        ...editForm,
+        hobbies: [...editForm.hobbies, newHobby.trim()]
+      });
+      setNewHobby('');
+    }
+  };
+
+  const removeHobby = (hobby: string) => {
+    setEditForm({
+      ...editForm,
+      hobbies: editForm.hobbies.filter(h => h !== hobby)
+    });
+  };
+
+  const addLanguage = () => {
+    if (newLanguage.trim() && !editForm.languages.includes(newLanguage.trim())) {
+      setEditForm({
+        ...editForm,
+        languages: [...editForm.languages, newLanguage.trim()]
+      });
+      setNewLanguage('');
+    }
+  };
+
+  const removeLanguage = (language: string) => {
+    setEditForm({
+      ...editForm,
+      languages: editForm.languages.filter(l => l !== language)
+    });
   };
 
   const formatDate = (dateString?: string) => {
@@ -195,6 +285,27 @@ export function Profile() {
     const firstInitial = name?.[0]?.toUpperCase() || '';
     const lastInitial = lastname?.[0]?.toUpperCase() || '';
     return firstInitial + lastInitial || '?';
+  };
+
+  const getRelationshipStatusText = (status?: string) => {
+    const statusMap: { [key: string]: string } = {
+      'single': 'Самотній/я',
+      'in_relationship': 'У стосунках',
+      'married': 'Одружений/а',
+      'divorced': 'Розлучений/а',
+      'complicated': 'Все складно'
+    };
+    return statusMap[status || ''] || status || 'Не вказано';
+  };
+
+  const getFamilyStatusText = (status?: string) => {
+    const statusMap: { [key: string]: string } = {
+      'no_children': 'Без дітей',
+      'have_children': 'Є діти',
+      'want_children': 'Хочу дітей',
+      'no_want_children': 'Не хочу дітей'
+    };
+    return statusMap[status || ''] || status || 'Не вказано';
   };
 
   if (loading) {
@@ -355,14 +466,22 @@ export function Profile() {
               <div className="space-y-4">
                 {!isEditing ? (
                   <>
-                    <div>
-                      <h1 className="text-3xl font-bold text-gray-900">
-                        {profile.name} {profile.lastname}
-                      </h1>
-                      <p className="text-gray-600 flex items-center mt-1">
-                        <Mail size={16} className="mr-2" />
-                        {profile.email}
-                      </p>
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+                          {profile.name} {profile.lastname}
+                          {profile.isVerified && (
+                            <Shield className="h-6 w-6 text-blue-500" title="Верифікований профіль" />
+                          )}
+                        </h1>
+                        <p className="text-gray-600 flex items-center mt-1">
+                          <Mail size={16} className="mr-2" />
+                          {profile.email}
+                          {profile.email_verified && (
+                            <Check className="h-4 w-4 text-green-500 ml-1" title="Email верифіковано" />
+                          )}
+                        </p>
+                      </div>
                     </div>
 
                     {profile.bio && (
@@ -371,13 +490,66 @@ export function Profile() {
                       </p>
                     )}
 
-                    <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+                    {/* Contact Info */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
                       {profile.city && (
                         <div className="flex items-center">
-                          <MapPin size={16} className="mr-1" />
+                          <MapPin size={16} className="mr-2" />
                           {profile.city}
                         </div>
                       )}
+                      {profile.location && (
+                        <div className="flex items-center">
+                          <Globe size={16} className="mr-2" />
+                          {profile.location}
+                        </div>
+                      )}
+                      {profile.phone && (
+                        <div className="flex items-center">
+                          <Phone size={16} className="mr-2" />
+                          {profile.phone}
+                        </div>
+                      )}
+                      {profile.website && (
+                        <div className="flex items-center">
+                          <Globe size={16} className="mr-2" />
+                          <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                            {profile.website}
+                          </a>
+                        </div>
+                      )}
+                      {profile.work && (
+                        <div className="flex items-center">
+                          <Briefcase size={16} className="mr-2" />
+                          {profile.work}
+                        </div>
+                      )}
+                      {profile.education && (
+                        <div className="flex items-center">
+                          <GraduationCap size={16} className="mr-2" />
+                          {profile.education}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Additional Info */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                      {profile.relationshipStatus && (
+                        <div className="flex items-center">
+                          <Heart size={16} className="mr-2" />
+                          {getRelationshipStatusText(profile.relationshipStatus)}
+                        </div>
+                      )}
+                      {profile.familyStatus && (
+                        <div className="flex items-center">
+                          <Users size={16} className="mr-2" />
+                          {getFamilyStatusText(profile.familyStatus)}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Dates */}
+                    <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                       <div className="flex items-center">
                         <Calendar size={16} className="mr-1" />
                         Приєднався {formatDate(profile.created_at)}
@@ -389,9 +561,44 @@ export function Profile() {
                         </div>
                       )}
                     </div>
+
+                    {/* Hobbies */}
+                    {profile.hobbies && profile.hobbies.length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-900 mb-2">Хобі</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {profile.hobbies.map((hobby, index) => (
+                            <span
+                              key={index}
+                              className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                            >
+                              {hobby}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Languages */}
+                    {profile.languages && profile.languages.length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-900 mb-2">Мови</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {profile.languages.map((language, index) => (
+                            <span
+                              key={index}
+                              className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm"
+                            >
+                              {language}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-6">
+                    {/* Basic Info */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -435,6 +642,7 @@ export function Profile() {
                       <p className="text-xs text-gray-500 mt-1">{editForm.bio.length}/500</p>
                     </div>
 
+                    {/* Contact Info */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -450,6 +658,113 @@ export function Profile() {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Місцезнаходження
+                        </label>
+                        <input
+                          type="text"
+                          value={editForm.location}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, location: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Країна, регіон"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Телефон
+                        </label>
+                        <input
+                          type="tel"
+                          value={editForm.phone}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="+380..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Веб-сайт
+                        </label>
+                        <input
+                          type="url"
+                          value={editForm.website}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, website: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="https://..."
+                        />
+                      </div>
+                    </div>
+
+                    {/* Professional Info */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Робота
+                        </label>
+                        <input
+                          type="text"
+                          value={editForm.work}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, work: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Компанія, посада"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Освіта
+                        </label>
+                        <input
+                          type="text"
+                          value={editForm.education}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, education: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Університет, спеціальність"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Personal Info */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Статус стосунків
+                        </label>
+                        <select
+                          value={editForm.relationshipStatus}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, relationshipStatus: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="">Не вказано</option>
+                          <option value="single">Самотній/я</option>
+                          <option value="in_relationship">У стосунках</option>
+                          <option value="married">Одружений/а</option>
+                          <option value="divorced">Розлучений/а</option>
+                          <option value="complicated">Все складно</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Сімейний статус
+                        </label>
+                        <select
+                          value={editForm.familyStatus}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, familyStatus: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="">Не вказано</option>
+                          <option value="no_children">Без дітей</option>
+                          <option value="have_children">Є діти</option>
+                          <option value="want_children">Хочу дітей</option>
+                          <option value="no_want_children">Не хочу дітей</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
                           Дата народження
                         </label>
                         <input
@@ -459,19 +774,96 @@ export function Profile() {
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                       </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Аватар (URL)
+                        </label>
+                        <input
+                          type="url"
+                          value={editForm.avatar}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, avatar: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="https://example.com/avatar.jpg"
+                        />
+                      </div>
                     </div>
 
+                    {/* Hobbies */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Аватар (URL)
-                      </label>
-                      <input
-                        type="url"
-                        value={editForm.avatar}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, avatar: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="https://example.com/avatar.jpg"
-                      />
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Хобі</label>
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {editForm.hobbies.map((hobby, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
+                          >
+                            {hobby}
+                            <button
+                              type="button"
+                              onClick={() => removeHobby(hobby)}
+                              className="ml-2 text-blue-600 hover:text-blue-800"
+                            >
+                              <X size={14} />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newHobby}
+                          onChange={(e) => setNewHobby(e.target.value)}
+                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addHobby())}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Додати хобі"
+                        />
+                        <button
+                          type="button"
+                          onClick={addHobby}
+                          className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                        >
+                          <Plus size={16} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Languages */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Мови</label>
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {editForm.languages.map((language, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-100 text-green-800"
+                          >
+                            {language}
+                            <button
+                              type="button"
+                              onClick={() => removeLanguage(language)}
+                              className="ml-2 text-green-600 hover:text-green-800"
+                            >
+                              <X size={14} />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newLanguage}
+                          onChange={(e) => setNewLanguage(e.target.value)}
+                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addLanguage())}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Додати мову"
+                        />
+                        <button
+                          type="button"
+                          onClick={addLanguage}
+                          className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                        >
+                          <Plus size={16} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
